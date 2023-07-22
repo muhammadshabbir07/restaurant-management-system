@@ -256,8 +256,6 @@ void registration() {
     print(" --> Enter Your Email Address: ");
     regEmail = stdin.readLineSync();
 
-    regUser = regEmail.substring(0, regEmail.indexOf("@"));
-
     print(" --> Enter Your Phone Number: ");
     regNumber = stdin.readLineSync();
 
@@ -267,37 +265,47 @@ void registration() {
     print(" --> Enter Your Password: ");
     regPass = stdin.readLineSync();
 
-    if (regUser != null &&
-        regEmail != null &&
+    if (regEmail != null &&
         regNumber != null &&
         regAddress != null &&
         regPass != null) {
-      bool emailExists = false;
-      for (var users in usersData) {
-        if (regEmail == users["userEmail"]) {
-          emailExists = true;
-          break;
+      if (regEmail.contains("@")) {
+        regUser = regEmail.substring(0, regEmail.indexOf("@"));
+        if (double.tryParse(regNumber) != null) {
+          bool emailExists = false;
+          for (var users in usersData) {
+            if (regEmail == users["userEmail"]) {
+              emailExists = true;
+              break;
+            }
+          }
+
+          if (emailExists) {
+            print(" *** Email already exists. *** ");
+          } else {
+            Map<dynamic, dynamic> regUserData = {
+              "userId": regId.toString(),
+              "username": regUser,
+              "userEmail": regEmail,
+              "userNumber": regNumber,
+              "userAddress": regAddress,
+              "userRole": "customer",
+              "userPass": regPass
+            };
+
+            usersData.add(regUserData);
+
+            print(" *** Account Created Successfully! ***");
+            loginCommandCheck = false;
+            login();
+          }
+        } else {
+          print(
+              " *** Invalid Phone Number! Please enter a valid number for the Phone Number. *** ");
         }
-      }
-
-      if (emailExists) {
-        print(" *** Email already exists. *** ");
       } else {
-        Map<dynamic, dynamic> regUserData = {
-          "userId": regId.toString(),
-          "username": regUser,
-          "userEmail": regEmail,
-          "userNumber": regNumber,
-          "userAddress": regAddress,
-          "userRole": "customer",
-          "userPass": regPass
-        };
-
-        usersData.add(regUserData);
-
-        print(" *** Account Created Successfully! ***");
-        loginCommandCheck = false;
-        login();
+        print(
+            " *** Invalid Email Address! Please enter a valid email address. *** ");
       }
     }
   }
@@ -307,7 +315,6 @@ void showMenu(loginUserId) {
   print("\n\n********************");
   print("* This is Our Menu *");
   print("********************");
-  // Display prices and IDs of items for each category, showing category name only once
   Set<String> uniqueCategories = Set<String>();
   for (var menu in restaurantMenus) {
     var category = menu['prodCategory'];
@@ -328,8 +335,7 @@ void getOrder(loginUserId) {
   List<Map<dynamic, dynamic>> orderedItems = [];
 
   print("\n************************************");
-  print(
-      "* Please select item id for order (comma separated) or type 'done' to proceed: *");
+  print("* Please select item id for order or type 'done' to proceed: *");
   print("************************************");
 
   while (addingItems) {
@@ -351,6 +357,7 @@ void getOrder(loginUserId) {
         };
         orderedItems.add(orderData);
         print(" *** Item added to the order. *** ");
+        print("\n *** Please select item id for another order or type 'done' to proceed: *** ");
         break;
       }
     }
@@ -367,7 +374,6 @@ void getOrder(loginUserId) {
     print("*   INVOICE RECEIPT   *");
     print("**********************");
 
-    // Fetching customer details
     String customerName = usersData[int.parse(loginUserId) - 1]["username"];
     String customerAddress =
         usersData[int.parse(loginUserId) - 1]["userAddress"];
@@ -387,7 +393,6 @@ void getOrder(loginUserId) {
     print("----------------------------------");
     print("Total Amount: \t\t\t $totalAmount");
     print("\n *** Your order has been recorded. Thank you! *** ");
-    print(getOrders);
   } else {
     print(" *** Your order is empty. *** ");
   }
@@ -414,8 +419,8 @@ void admin() {
       deleteItem();
       adminCommandCheck = false;
     } else if (adminInput == "4") {
-        print("\n*** Exiting Admin Mode ***");
-        adminCommandCheck = false;
+      print("\n*** Exiting Admin Mode ***");
+      adminCommandCheck = false;
     } else {
       print(" --> You have chosen the wrong command \n");
       print(" --> Please choose a correct command");
@@ -447,31 +452,34 @@ void addItem() {
         prodCategory.isNotEmpty &&
         prodName.isNotEmpty &&
         prodPrice.isNotEmpty) {
-      Map<String, dynamic> newItem = {
-        "prodId": prodId,
-        "prodCategory": prodCategory,
-        "prodName": prodName,
-        "prodPrice": prodPrice,
-      };
+      if (double.tryParse(prodPrice) != null) {
+        Map<String, dynamic> newItem = {
+          "prodId": prodId,
+          "prodCategory": prodCategory,
+          "prodName": prodName,
+          "prodPrice": prodPrice,
+        };
+        restaurantMenus.add(newItem);
+        print(" *** Item Added Successfully! *** ");
+        bool commandCheck = true;
 
-      restaurantMenus.add(newItem);
-      print(" *** Item Added Successfully! *** ");
+        while (commandCheck) {
+          print("Do you want to add another item? (yes/no)");
+          String? choice = stdin.readLineSync()?.toLowerCase();
 
-      bool commandCheck = true;
-
-      while (commandCheck) {
-        print("Do you want to add another item? (yes/no)");
-        String? choice = stdin.readLineSync()?.toLowerCase();
-
-        if (choice == "no") {
-          itemCheck = false;
-          commandCheck = false;
-        } else if (choice != "yes") {
-          print(" --> You have chosen the wrong command \n");
-          print(" --> Please choose a correct command");
-        } else {
-          commandCheck = false;
+          if (choice == "no") {
+            itemCheck = false;
+            commandCheck = false;
+          } else if (choice != "yes") {
+            print(" --> You have chosen the wrong command \n");
+            print(" --> Please choose a correct command");
+          } else {
+            commandCheck = false;
+          }
         }
+      } else {
+        print(
+            " *** Invalid price! Please enter a valid number for the product price. *** ");
       }
     } else {
       print("All Fields are required");
@@ -481,46 +489,68 @@ void addItem() {
 }
 
 void updateItem() {
-  print("\n*** Update Item ***");
+  bool itemCheck = true;
+  while (itemCheck) {
+    print("\n*** Update Item ***");
 
-  print(" --> Enter Product ID to Update: ");
-  String? prodId = stdin.readLineSync();
+    print(" --> Enter Product ID to Update: ");
+    String? prodId = stdin.readLineSync();
 
-  int? index = findItemIndex(prodId);
+    int? index = findItemIndex(prodId);
 
-  if (index != null) {
-    print(" --> Enter New Product Name: ");
-    String? prodName = stdin.readLineSync();
+    if (index != null && index.toString().isNotEmpty) {
+      bool itemsEnter = true;
+      while (itemsEnter) {
+        print(" --> Enter New Product Name: ");
+        String? prodName = stdin.readLineSync();
 
-    print(" --> Enter New Product Price: ");
-    String? prodPrice = stdin.readLineSync();
+        print(" --> Enter New Product Price: ");
+        String? prodPrice = stdin.readLineSync();
 
-    restaurantMenus[index]["prodName"] = prodName;
-    restaurantMenus[index]["prodPrice"] = prodPrice;
-    print(" *** Item Updated Successfully! *** ");
-  } else {
-    print(" *** Item with Product ID $prodId not found! *** ");
+        if (prodName != null &&
+            prodPrice != null &&
+            prodName.isNotEmpty &&
+            prodPrice.isNotEmpty) {
+          if (double.tryParse(prodPrice) != null) {
+            restaurantMenus[index]["prodName"] = prodName;
+            restaurantMenus[index]["prodPrice"] = prodPrice;
+            print(" *** Item Updated Successfully! *** ");
+            itemCheck = false;
+            itemsEnter = false;
+            admin();
+          } else {
+            print(
+                " *** Invalid price! Please enter a valid number for the product price. *** ");
+          }
+        } else {
+          print("All fields are required");
+        }
+      }
+    } else {
+      print(" *** Item with Product ID $prodId not found! *** ");
+    }
   }
-  admin();
-  print(restaurantMenus);
 }
 
 void deleteItem() {
-  print("\n*** Delete Item ***");
+  bool itemCheck = true;
+  while (itemCheck) {
+    print("\n*** Delete Item ***");
 
-  print(" --> Enter Product ID to Delete: ");
-  String? prodId = stdin.readLineSync();
+    print(" --> Enter Product ID to Delete: ");
+    String? prodId = stdin.readLineSync();
 
-  int? index = findItemIndex(prodId);
+    int? index = findItemIndex(prodId);
 
-  if (index != null) {
-    restaurantMenus.removeAt(index);
-    print(" *** Item Deleted Successfully! *** ");
-  } else {
-    print(" *** Item with Product ID $prodId not found! *** ");
+    if (index != null && index.toString().isNotEmpty) {
+      restaurantMenus.removeAt(index);
+      print(" *** Item Deleted Successfully! *** ");
+      itemCheck = false;
+      admin();
+    } else {
+      print(" *** Item with Product ID $prodId not found! *** ");
+    }
   }
-  admin();
-  print(restaurantMenus);
 }
 
 int? findItemIndex(String? prodId) {
